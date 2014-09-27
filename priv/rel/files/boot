@@ -39,13 +39,14 @@ relx_rem_sh() {
     TICKTIME="$(relx_nodetool rpcterms net_kernel get_net_ticktime)"
 
     # Setup Erlang remote shell command to control node
-    #exec "$ERTS_DIR/bin/erl" "$NAME_TYPE" "$id" -remsh "$NAME" -boot start_clean \
+    #exec "$ERTS_DIR/bin/erl" "$NAME_TYPE" "$id" -remsh "$NAME" -boot start_clean -config "$CONFIG_PATH" -args_file "$REMSH_VMARGS_PATH" \
          #-setcookie "$COOKIE" -kernel net_ticktime "$TICKTIME"
 
     # Setup Elixir remote shell command to control node
     set -- "$ERTS_DIR/bin/erl" \
                 -pa "$ROOTDIR"/lib/*/ebin "$ROOTDIR"/lib/consolidated \
                 -noshell -boot start_clean \
+                -config "$CONFIG_PATH" -args_file "$REMSH_VMARGS_PATH" \
                 -kernel net_ticktime "$TICKTIME" \
                 -user Elixir.IEx.CLI "$NAME_TYPE" "$id" -setcookie "$COOKIE" \
                 -extra --no-halt +iex -"$NAME_TYPE" "$id" --cookie "$COOKIE" --remsh "$NAME"
@@ -99,6 +100,10 @@ if [ $RELX_REPLACE_OS_VARS ]; then
     awk '{while(match($0,"[$]{[^}]*}")) {var=substr($0,RSTART+2,RLENGTH -3);gsub("[$]{"var"}",ENVIRON[var])}}1' < $VMARGS_PATH > $VMARGS_PATH.2.config
     VMARGS_PATH=$VMARGS_PATH.2.config
 fi
+
+REMSH_VMARGS_PATH=$VMARGS_PATH.remsh
+awk '!(/^-s?name/ || /^-setcookie/){ print; }' < $VMARGS_PATH > $REMSH_VMARGS_PATH
+
 
 # Make sure log directory exists
 mkdir -p "$RUNNER_LOG_DIR"
